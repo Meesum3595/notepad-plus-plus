@@ -1,30 +1,37 @@
-name: OWASP Dependency Check
+name: SCA – OWASP Dependency-Check
 
 on:
   push:
-    branches: [ feature/dependency-check ]
+    branches:
+      - feature/dependency-check
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   dependency-check:
     name: Run OWASP Dependency-Check
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Run OWASP Dependency-Check
-      uses: dependency-check/gh-action@v3
-      with:
-        project: 'my-project'
-        scan: './'
-        format: 'ALL'
-        out: 'reports'
+      - name: Build project (if needed)
+        # e.g., for C++ you might compile or restore deps here
+        # run: make all
+        run: echo "No build step needed for pure dependency scan"
 
-    - name: Upload dependency-check report
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-check-report
-        path: reports
+      - name: Run OWASP Dependency-Check SCA
+        uses: dependency-check/Dependency-Check_Action@main
+        id: depcheck
+        with:
+          project: 'notepad-plus-plus'
+          path: '.'
+          format: 'ALL'
+          out: 'dependency-check-report'
+
+      - name: Upload Dependency-Check report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: dependency-check-report
