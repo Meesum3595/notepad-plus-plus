@@ -1,0 +1,30 @@
+name: OWASP Dependency Check
+
+on:
+  push:
+    branches: [ feature/dependency-check ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  dependency-check:
+    name: Run OWASP Dependency-Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Run OWASP Dependency-Check
+      uses: dependency-check/gh-action@v3
+      with:
+        project: 'my-project'
+        scan: './'
+        format: 'ALL'
+        out: 'reports'
+
+    - name: Upload dependency-check report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-check-report
+        path: reports
