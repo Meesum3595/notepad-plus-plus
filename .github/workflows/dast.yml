@@ -22,15 +22,18 @@ jobs:
       - name: Run ZAP full scan
         uses: zaproxy/action-full-scan@v0.5.0
         with:
+          # The URL to scan
           target: 'http://127.0.0.1:8080'
-          format: 'HTML'
-          rules_file_name: ''
+          # Explicit Docker image tag
+          docker_name: 'owasp/zap2docker-stable:latest'
+          # Fail the job on alert
+          fail_action: 'true'
 
       - name: Upload ZAP report
         uses: actions/upload-artifact@main
         with:
           name: zap-report
-          path: zap_report.html
+          path: report_html.html
 
   burp-scan:
     name: Burp Suite Headless Scan
@@ -47,10 +50,10 @@ jobs:
 
       - name: Run Burp Suite headless scan
         run: |
-          docker pull portswigger/portswigger-burp
+          docker pull portswigger/portswigger-burp:latest
           docker run --rm --network host \
             -v "${{ github.workspace }}/burp-config:/config" \
-            portswigger/portswigger-burp \
+            portswigger/portswigger-burp:latest \
             --headless \
             --config-file /config/config.json \
             --report-file burp-report.xml \
