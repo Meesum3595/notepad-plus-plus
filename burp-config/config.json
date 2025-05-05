@@ -1,0 +1,8 @@
+{
+  "project_options": {
+    "target_url": "http://127.0.0.1:8080"
+  },
+  "scan_options": {
+    "scan_type": "FULL"
+  }
+}
