@@ -27,7 +27,7 @@ jobs:
           rules_file_name: ''
 
       - name: Upload ZAP report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: zap-report
           path: zap_report.html
@@ -57,7 +57,7 @@ jobs:
             http://127.0.0.1:8080
 
       - name: Upload Burp report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: burp-report
           path: burp-report.xml
