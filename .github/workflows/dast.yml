@@ -1,17 +1,18 @@
 name: DAST – OWASP ZAP Positive Scan
 
 on:
-  push:
-    branches:
-      - feature/dast-setup
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - feature/dast-setup
 
 jobs:
-  zap_positive:
+  zap-scan:                            # ← change from zap_positive
     name: OWASP ZAP Positive Scan
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -25,9 +26,9 @@ jobs:
           python3 -m http.server 8080 &
           sleep 5
 
-      - name: Run ZAP full scan (positive)
+      - name: Run ZAP full scan
         uses: zaproxy/action-full-scan@v0.5.0
-        continue-on-error: true        # ← allow this step to *not* block the job
+        continue-on-error: true
         with:
           target: 'http://localhost:8080/index.html'
           docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
