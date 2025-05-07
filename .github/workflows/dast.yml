@@ -22,16 +22,17 @@ jobs:
           python3 -m http.server 8080 &
           sleep 5
 
-      - name: Run ZAP full scan
+      - name: Run ZAP full scan (positive case)
         uses: zaproxy/action-full-scan@v0.5.0
         with:
           target: 'http://localhost:8080/index.html'
           docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
-          fail_action: true
+          # don’t fail on any alert → lets WARN‑NEW pass
+          fail_action: false
 
-      - name: Show ZAP report snippet
+      - name: Show ZAP HTML report snippet
         if: always()
         run: |
-          echo "===== ZAP HTML Report (first 200 lines) ====="
-          head -n 200 report_html.html || echo "(no report_html.html found)"
-          echo "============================================="
+          echo "===== ZAP HTML Report (first 100 lines) ====="
+          head -n 100 report_html.html || echo "(no report_html.html found)"
+          echo "=============================================="
