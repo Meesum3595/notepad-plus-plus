@@ -1,0 +1,56 @@
+name: DAST – Burp Suite Community Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  start-demo-server:
+    name: Serve Demo Page
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          nohup python3 -m http.server 8080 &
+          sleep 5
+
+  burp-scan:
+    name: Run Burp Suite Community DAST
+    needs: start-demo-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker pull portswigger/burp-suite-community:latest
+      - run: |
+          docker run -d --name burp \
+            -p 8090:8080 \
+            portswigger/burp-suite-community:latest \
+            java -jar /burp/burpsuite_community.jar \
+              --headless \
+              --project-file=/burp/project.burp \
+              --config-file=/burp/config.yaml \
+              --scan http://host.docker.internal:8080/index.html
+          sleep 120
+          docker cp burp:/burp/report.xml burp-report.xml
+      - uses: actions/upload-artifact@v3
+        with:
+          name: burp-dast-report
+          path: burp-report.xml
+
+  fail-on-high-severity:
+    name: Fail if any high or critical issues
+    needs: burp-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: burp-dast-report
+      - run: |
+          if grep -qE 'severity="(High|Critical)"' burp-report.xml; then
+            echo "🚨 High/Critical issues found—failing."
+            exit 1
+          else
+            echo "✅ No High/Critical issues."
+          fi
