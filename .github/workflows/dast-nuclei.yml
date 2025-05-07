@@ -1,42 +1,43 @@
-name: DAST with Nuclei
+name: DAST Scan with Nuclei
 
 on:
   push:
-    branches: [ feature/dast-nuclei ]
+    branches:
+      - feature/dast-nuclei
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   nuclei-scan:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Start local server
-      run: |
-        python3 -m http.server 8000 &
-        sleep 5  # Give it time to start
+      - name: Set up Python web server
+        run: |
+          mkdir -p web
+          echo '<html><body><h1>Test Page</h1></body></html>' > web/index.html
+          cd web
+          python3 -m http.server 8080 &
+          sleep 5
 
-    - name: Install Nuclei
-      run: |
-        curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
-        | grep "browser_download_url.*linux_amd64.zip" \
-        | cut -d '"' -f 4 \
-        | wget -qi -
-        unzip nuclei_*_linux_amd64.zip
-        sudo mv nuclei /usr/local/bin/
+      - name: Install Nuclei
+        run: |
+          curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
+          | grep "browser_download_url.*linux_amd64.zip" \
+          | cut -d '"' -f 4 \
+          | wget -qi -
+          unzip nuclei_*_linux_amd64.zip
+          sudo mv nuclei /usr/local/bin/
 
-    - name: Run Nuclei Scan
-      run: |
-        mkdir -p nuclei-results
-        nuclei -u http://localhost:8000 \
-          -t 'cves,technologies' \
-          -o nuclei-results/results.txt
+      - name: Run Nuclei scan
+        run: nuclei -u http://localhost:8080 -o output.txt
 
-    - name: Upload scan results
-      uses: actions/upload-artifact@v3
-      with:
-        name: nuclei-results
-        path: nuclei-results/results.txt
+      - name: Upload Nuclei scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuclei-results
+          path: output.txt
