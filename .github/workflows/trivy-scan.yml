@@ -1,70 +1,38 @@
-name: 🐳 Container Security Scan (Trivy)
+name: “Container Security Scan (Trivy)”
 
+# trigger on pushes to your feature branch and on PRs into main
 on:
   push:
     branches:
       - feature/trivy-scan
+      - main
   pull_request:
     branches:
       - main
 
 jobs:
-  trivy:
-    name: Run Trivy vulnerability scan
+  trivy-scan:
+    name: Run Trivy filesystem scan
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Python HTTP server (for demo HTML)
-        run: python3 -m http.server 8080 &
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # Install Trivy CLI (optional if you want local fallback)
-      - name: Install Trivy
-        run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.49.2
-
-      - name: Pull demo index.html
-        run: |
-          mkdir demo
-          cat > demo/index.html << 'EOF'
-          <!doctype html>
-          <html>
-          <head><title>Notepad++ Demo</title></head>
-          <body>
-            <h1>Welcome to Notepad++ Demo Page</h1>
-            <form action="/submit" method="post">
-              <input name="name" placeholder="Your name">
-              <button type="submit">Submit</button>
-            </form>
-          </body>
-          </html>
-          EOF
-
-      - name: Build Docker image for demo
-        run: |
-          cat > Dockerfile << 'EOF'
-          FROM nginx:alpine
-          COPY demo /usr/share/nginx/html
-          EOF
-          docker build -t demo-nginx .
-
-      - name: Run Trivy scan on the image
-        uses: aquasecurity/trivy-action@v0.14.0
+      - name: Run Trivy scan on source
+        uses: aquasecurity/trivy-action@v0.10.1
         with:
-          image-ref: demo-nginx:latest
-          format: table
-          exit-code: 1      # fail the job on any vulnerability
-          vuln-type: 'os,library'
+          scan-type: fs
+          scan-target: .
+          # only report HIGH and CRITICAL
+          severity: HIGH,CRITICAL
 
-      - name: Upload Trivy report
-        uses: actions/upload-artifact@v3
-        with:
-          name: trivy-report
-          path: trivy-report.txt
-
-      - name: Display Trivy report
-        if: failure()
+      # fail the build if any HIGH or CRITICAL vulnerabilities are found
+      - name: Enforce no HIGH/CRITICAL findings
+        if: ${{ steps.trivy-scan.outcome == 'failure' }}
         run: |
-          echo "✘ Vulnerabilities detected:"
-          cat trivy-report.txt
+          echo "❌ High/Critical vulnerabilities detected—failing build."
+          exit 1
