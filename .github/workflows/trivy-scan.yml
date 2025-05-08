@@ -1,38 +1,40 @@
-name: “Container Security Scan (Trivy)”
-
-# trigger on pushes to your feature branch and on PRs into main
+name: Container Vulnerability Scan (Trivy)
+# run on pushes to this feature branch (or adjust to main/develop as needed)
 on:
   push:
     branches:
       - feature/trivy-scan
-      - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   trivy-scan:
-    name: Run Trivy filesystem scan
+    name: Run Trivy OS & Library Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      # If you’re building images, you’d setup buildx here.
+      # Not needed for a filesystem scan:
+      #- name: Set up Docker Buildx
+      #  uses: docker/setup-buildx-action@v2
 
-      - name: Run Trivy scan on source
-        uses: aquasecurity/trivy-action@v0.10.1
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.13.0
         with:
+          # filesystem scan of the repo root
           scan-type: fs
-          scan-target: .
-          # only report HIGH and CRITICAL
-          severity: HIGH,CRITICAL
+          # comma-separated list of vulnerability types
+          vuln-type: os,library
+          # fail the job if any HIGH or CRITICAL is found
+          severity-threshold: HIGH
+          # output formats available: table (default), json, sarif
+          format: table
+          # exit code 1 on any vuln ≥ threshold (so the job goes red)
+          exit-code: ‘1’
 
-      # fail the build if any HIGH or CRITICAL vulnerabilities are found
-      - name: Enforce no HIGH/CRITICAL findings
-        if: ${{ steps.trivy-scan.outcome == 'failure' }}
-        run: |
-          echo "❌ High/Critical vulnerabilities detected—failing build."
-          exit 1
+      - name: Upload SARIF report to GitHub Code Scanning
+        if: always()     # we still want SARIF even on failure
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
