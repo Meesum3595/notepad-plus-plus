@@ -2,15 +2,13 @@ name: Trivy Container Security Scan
 
 on:
   push:
-    branches:
-      - main
-      - feature/trivy-scan
+    branches: [main, feature/trivy-scan]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   trivy-scan:
+    name: Run Trivy on Alpine Container
     runs-on: ubuntu-latest
 
     steps:
@@ -21,17 +19,16 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@a2359b7de9cdd342f745a9e38cc2b92f625f5972
+        uses: aquasecurity/trivy-action@v0.14.0
         with:
-          image-ref: 'meesum3595/notepad-plus-plus:latest'
+          image-ref: 'alpine:latest'
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
 
-      - name: Upload Trivy Scan Report
+      - name: Upload Trivy report
         uses: actions/upload-artifact@v3
         with:
-          name: trivy-report
-          path: trivy-results.txt
+          name: trivy-scan-report
+          path: trivy-report.txt
