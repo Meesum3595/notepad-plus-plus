@@ -1,33 +1,31 @@
-name: 🛡️ Container Security Scan with Trivy
+name: Trivy Filesystem Scan
 
+# Trigger on pushes to your feature branch and on PRs into main/develop
 on:
-  pull_request:
-    branches: [ develop ]
   push:
-    branches: [ develop ]
+    branches:
+      - feature/trivy-scan
+  pull_request:
+    branches:
+      - main
+      - develop
 
 jobs:
   trivy-scan:
-    name: Trivy container scan
+    name: Run Trivy filesystem vulnerability scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build Docker image
-        run: |
-          docker build --tag notepad-plus-plus:latest .
-
-      - name: Run Trivy vulnerability scan
+      - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.2.0
         with:
-          image-ref: notepad-plus-plus:latest
-          format: 'table'
-          vuln-type: 'os,library'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-          output: 'trivy-report.txt'
+          scan-type: fs
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          # save output to a file
+          output: trivy-report.txt
 
       - name: Upload Trivy report
         uses: actions/upload-artifact@v3
