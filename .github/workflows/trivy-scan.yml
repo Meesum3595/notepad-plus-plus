@@ -1,4 +1,4 @@
-name: Trivy Filesystem Scan
+name: 🐳 Container Security Scan (Trivy)
 
 on:
   push:
@@ -7,28 +7,64 @@ on:
   pull_request:
     branches:
       - main
-      - develop
 
 jobs:
-  trivy-scan:
-    name: Run Trivy filesystem vulnerability scan
+  trivy:
+    name: Run Trivy vulnerability scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Run Trivy scan
-        # pin to a released version that exists
-        uses: aquasecurity/trivy-action@v0.10.1
+      - name: Set up Python HTTP server (for demo HTML)
+        run: python3 -m http.server 8080 &
+
+      # Install Trivy CLI (optional if you want local fallback)
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.49.2
+
+      - name: Pull demo index.html
+        run: |
+          mkdir demo
+          cat > demo/index.html << 'EOF'
+          <!doctype html>
+          <html>
+          <head><title>Notepad++ Demo</title></head>
+          <body>
+            <h1>Welcome to Notepad++ Demo Page</h1>
+            <form action="/submit" method="post">
+              <input name="name" placeholder="Your name">
+              <button type="submit">Submit</button>
+            </form>
+          </body>
+          </html>
+          EOF
+
+      - name: Build Docker image for demo
+        run: |
+          cat > Dockerfile << 'EOF'
+          FROM nginx:alpine
+          COPY demo /usr/share/nginx/html
+          EOF
+          docker build -t demo-nginx .
+
+      - name: Run Trivy scan on the image
+        uses: aquasecurity/trivy-action@v0.14.0
         with:
-          scan-type: fs
-          vuln-type: os,library
-          severity: HIGH,CRITICAL
-          output: trivy-report.txt
+          image-ref: demo-nginx:latest
+          format: table
+          exit-code: 1      # fail the job on any vulnerability
+          vuln-type: 'os,library'
 
       - name: Upload Trivy report
-        # use the stable upload-artifact version
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: trivy-report
           path: trivy-report.txt
+
+      - name: Display Trivy report
+        if: failure()
+        run: |
+          echo "✘ Vulnerabilities detected:"
+          cat trivy-report.txt
