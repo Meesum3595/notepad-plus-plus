@@ -1,40 +1,37 @@
-name: Container Vulnerability Scan (Trivy)
-# run on pushes to this feature branch (or adjust to main/develop as needed)
+name: Trivy Container Security Scan
+
 on:
   push:
     branches:
+      - main
       - feature/trivy-scan
+  pull_request:
+    branches:
+      - main
 
 jobs:
   trivy-scan:
-    name: Run Trivy OS & Library Scan
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # If you’re building images, you’d setup buildx here.
-      # Not needed for a filesystem scan:
-      #- name: Set up Docker Buildx
-      #  uses: docker/setup-buildx-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0.13.0
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@a2359b7de9cdd342f745a9e38cc2b92f625f5972
         with:
-          # filesystem scan of the repo root
-          scan-type: fs
-          # comma-separated list of vulnerability types
-          vuln-type: os,library
-          # fail the job if any HIGH or CRITICAL is found
-          severity-threshold: HIGH
-          # output formats available: table (default), json, sarif
-          format: table
-          # exit code 1 on any vuln ≥ threshold (so the job goes red)
-          exit-code: ‘1’
+          image-ref: 'meesum3595/notepad-plus-plus:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
-      - name: Upload SARIF report to GitHub Code Scanning
-        if: always()     # we still want SARIF even on failure
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Upload Trivy Scan Report
+        uses: actions/upload-artifact@v3
         with:
-          sarif_file: results.sarif
+          name: trivy-report
+          path: trivy-results.txt
