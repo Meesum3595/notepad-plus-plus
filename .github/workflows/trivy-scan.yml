@@ -1,45 +1,36 @@
-name: Container Image Security Scan
-
+name: 🛡️ Container Security Scan with Trivy
 
 on:
-  push:
-    branches: [ develop ]
   pull_request:
+    branches: [ develop ]
+  push:
     branches: [ develop ]
 
 jobs:
-  trivy:
+  trivy-scan:
+    name: Trivy container scan
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Build Docker image
         run: |
-          docker build -t notepadpp-demo:latest .
+          docker build --tag notepad-plus-plus:latest .
 
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@v0.9.4
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@v0.2.0
         with:
-          version: 0.43.1   # or latest
-
-      - name: Run Trivy on image
-        id: trivy
-        uses: aquasecurity/trivy-action@v0.9.4
-        with:
-          image-ref: notepadpp-demo:latest
-          scan-type: image
-          format: json
-          output: trivy-report.json
-          exit-code: '1'       # fail job on ANY vuln
-          severity: CRITICAL,HIGH
+          image-ref: notepad-plus-plus:latest
+          format: 'table'
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          output: 'trivy-report.txt'
 
       - name: Upload Trivy report
-        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: trivy-report
-          path: trivy-report.json
+          path: trivy-report.txt
