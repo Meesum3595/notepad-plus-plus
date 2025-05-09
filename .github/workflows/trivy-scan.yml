@@ -1,0 +1,54 @@
+name: "🛡️ Container Security (Trivy Docker)"
+
+on:
+  push:
+    branches: [ feature/trivy-scan ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  trivy-scan:
+    name: Build & scan with Trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # 2) Build the container
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag notepadpp-demo:latest \
+            .
+
+      # 3) Run Trivy scan (table output + fail on issues)
+      - name: Run Trivy scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasecurity/trivy:0.45.0 image \
+              --exit-code 1 \
+              --format table \
+              notepadpp-demo:latest
+
+      # 4) Generate JSON report
+      - name: Generate Trivy JSON report
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}:/workspace \
+            aquasecurity/trivy:0.45.0 image \
+              --exit-code 1 \
+              --format json \
+              --output /workspace/trivy-report.json \
+              notepadpp-demo:latest
+
+      # 5) Print JSON report
+      - name: Show JSON report in logs
+        if: always()
+        run: |
+          echo "==== Trivy JSON Report ===="
+          cat trivy-report.json
