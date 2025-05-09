@@ -1,26 +1,46 @@
-name: Container build & Trivy scan
+name: "🛡️ Container Security (Trivy Scan)"
 
 on:
   push:
     branches:
       - feature/trivy-scan
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-and-scan:
+  trivy-scan:
+    name: Scan Docker image with Trivy
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      # 1) Checkout your code
+      - name: Check out repo
         uses: actions/checkout@v3
 
-      - name: Build Notepad++ container
+      # 2) Build your container image
+      - name: Build container image
         run: |
-          docker build -t notepadpp-wine .
+          docker build \
+            --file Dockerfile \
+            --tag notepadpp-demo:latest \
+            .
 
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@v0.13.0
+      # 3) Run Trivy scan
+      - name: Run Trivy container scan
+        uses: aquasecurity/trivy-action@v0.9.3
         with:
-          image-ref: notepadpp-wine:latest
+          image-ref: notepadpp-demo:latest
           format: table
-          exit-code: '1'        # non-zero if HIGH/CRITICAL vulns found
-          severity: HIGH,CRITICAL
+          exit-code: '1'           # non-zero on any vulnerability
+          vuln-type: 'os,library'
+          ignore-unfixed: true     # only fail on confirmed vulns
+
+      # 4) Upload Trivy report as artifact (optional)
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-report
+          path: |
+            .trivyignore  # if you use one
+            trivy-report.txt
