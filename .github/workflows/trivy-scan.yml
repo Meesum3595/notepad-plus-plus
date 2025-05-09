@@ -24,7 +24,7 @@ jobs:
             --tag notepadpp-demo:latest \
             .
 
-      # 3) Run Trivy via Docker
+      # 3) Run Trivy scan (table output + fail on issues)
       - name: Run Trivy scan
         run: |
           docker run --rm \
@@ -46,10 +46,9 @@ jobs:
               --output /workspace/trivy-report.json \
               notepadpp-demo:latest
 
-      # 5) Upload JSON report as an artifact
-      - name: Upload JSON report
+      # 5) Print JSON report
+      - name: Show JSON report in logs
         if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: trivy-report
-          path: trivy-report.json
+        run: |
+          echo "==== Trivy JSON Report ===="
+          cat trivy-report.json
