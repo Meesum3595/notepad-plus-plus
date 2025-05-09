@@ -1,46 +1,53 @@
-name: "🛡️ Container Security (Trivy Scan)"
+name: "🛡️ Container Security (Trivy Docker)"
 
 on:
   push:
-    branches:
-      - feature/trivy-scan
+    branches: [ feature/trivy-scan ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   trivy-scan:
-    name: Scan Docker image with Trivy
+    name: Build & scan with Trivy
     runs-on: ubuntu-latest
     steps:
-      # 1) Checkout your code
-      - name: Check out repo
+      # 1) Checkout
+      - name: Check out code
         uses: actions/checkout@v3
 
-      # 2) Build your container image
-      - name: Build container image
+      # 2) Build the container
+      - name: Build Docker image
         run: |
           docker build \
             --file Dockerfile \
             --tag notepadpp-demo:latest \
             .
 
-      # 3) Run Trivy scan
-      - name: Run Trivy container scan
-        uses: aquasecurity/trivy-action@v0.9.3
-        with:
-          image-ref: notepadpp-demo:latest
-          format: table
-          exit-code: '1'           # non-zero on any vulnerability
-          vuln-type: 'os,library'
-          ignore-unfixed: true     # only fail on confirmed vulns
+      # 3) Run Trivy via Docker
+      - name: Run Trivy scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasecurity/trivy:0.45.0 image \
+              --exit-code 1 \
+              --format table \
+              notepadpp-demo:latest
 
-      # 4) Upload Trivy report as artifact (optional)
-      - name: Upload Trivy report
+      # 4) (Optional) Archive the raw JSON report
+      - name: Run Trivy JSON report
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}:/workspace \
+            aquasecurity/trivy:0.45.0 image \
+              --exit-code 1 \
+              --format json \
+              --output /workspace/trivy-report.json \
+              notepadpp-demo:latest
+
+      - name: Upload JSON report
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: trivy-report
-          path: |
-            .trivyignore  # if you use one
-            trivy-report.txt
+          path: trivy-report.json
