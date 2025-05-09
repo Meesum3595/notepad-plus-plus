@@ -34,7 +34,7 @@ jobs:
               --format table \
               notepadpp-demo:latest
 
-      # 4) Export JSON report
+      # 4) Generate JSON report
       - name: Generate Trivy JSON report
         run: |
           docker run --rm \
@@ -46,10 +46,10 @@ jobs:
               --output /workspace/trivy-report.json \
               notepadpp-demo:latest
 
-      # 5) Upload JSON report as artifact
+      # 5) Upload JSON report as an artifact
       - name: Upload JSON report
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v1
         with:
           name: trivy-report
           path: trivy-report.json
